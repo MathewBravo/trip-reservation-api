@@ -3,14 +3,13 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
 	"github.com/gofiber/fiber/v2"
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
 	"trip-reservation/api"
-	"trip-reservation/models"
+	"trip-reservation/db"
+	"trip-reservation/helpers"
 )
 
 const uri = "mongodb://localhost:27017"
@@ -18,43 +17,22 @@ const DB_NAME = "trip-reservation"
 const USER_COLLECTION = "users"
 
 func main() {
+
+	listenAddr := flag.String("listenAddr", ":8081", "The listen address of the API server")
+	flag.Parse()
+
 	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(uri))
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	ctx := context.Background()
+	userHandler := api.NewUserHandler(db.NewMongoUserStore(client))
 
-	col := client.Database(DB_NAME).Collection(USER_COLLECTION)
-
-	u := models.User{
-		FName: "Mathew",
-		LName: "Bravo",
-	}
-	res, err := col.InsertOne(ctx, u)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	var testUser models.User
-
-	err = col.FindOne(ctx, bson.M{}).Decode(&testUser)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Println(res)
-	fmt.Println(testUser)
-
-	listenAddr := flag.String("listenAddr", ":8081", "The listen address of the API server")
-	flag.Parse()
-
-	app := fiber.New()
-
+	app := fiber.New(helpers.CONFIG)
 	apiv1 := app.Group("api/v1")
 
-	apiv1.Get("/user", api.GetUsersHandler)
-	apiv1.Get("/user/:id", api.GetUserHandler)
+	apiv1.Get("/user", userHandler.GetUsersHandler)
+	apiv1.Get("/user/:id", userHandler.GetUserHandler)
 
 	err = app.Listen(*listenAddr)
 	if err != nil {
