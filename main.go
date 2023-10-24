@@ -34,6 +34,8 @@ func main() {
 	apiv1.Get("/user", userHandler.GetUsersHandler)
 	apiv1.Get("/user/:id", userHandler.GetUserHandler)
 
+	apiv1.Post("/user", userHandler.CreateUserHandler)
+
 	err = app.Listen(*listenAddr)
 	if err != nil {
 		log.Fatal("Could not listen on port :8081")

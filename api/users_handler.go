@@ -1,7 +1,6 @@
 package api
 
 import (
-	"context"
 	"github.com/gofiber/fiber/v2"
 	"trip-reservation/db"
 	"trip-reservation/models"
@@ -18,13 +17,28 @@ func NewUserHandler(userStore db.UserStore) *UserHandler {
 	}
 }
 
+func (uh *UserHandler) CreateUserHandler(c *fiber.Ctx) error {
+	var params models.CreateUserParams
+	if err := c.BodyParser(&params); err != nil {
+		return err
+	}
+	user, err := models.CreateUserFromParams(params)
+	if err != nil {
+		return err
+	}
+	newUser, err := uh.userStore.CreateUser(c.Context(), user)
+	if err != nil {
+		return err
+	}
+	return c.JSON(newUser)
+}
+
 func (uh *UserHandler) GetUserHandler(c *fiber.Ctx) error {
 	var (
-		id  = c.Params("id")
-		ctx = context.Background()
+		id = c.Params("id")
 	)
 
-	user, err := uh.userStore.GetUserByID(ctx, id)
+	user, err := uh.userStore.GetUserByID(c.Context(), id)
 	if err != nil {
 		return err
 	}
@@ -32,10 +46,9 @@ func (uh *UserHandler) GetUserHandler(c *fiber.Ctx) error {
 }
 
 func (uh *UserHandler) GetUsersHandler(c *fiber.Ctx) error {
-	test_u := models.User{
-		ID:    "10",
-		FName: "Mathew",
-		LName: "Bravo",
+	users, err := uh.userStore.GetUsers(c.Context())
+	if err != nil {
+		return err
 	}
-	return c.JSON(test_u)
+	return c.JSON(users)
 }

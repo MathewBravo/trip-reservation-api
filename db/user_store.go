@@ -13,6 +13,8 @@ const USER_COLLECTION = "users"
 
 type UserStore interface {
 	GetUserByID(context.Context, string) (*models.User, error)
+	GetUsers(ctx context.Context) ([]*models.User, error)
+	CreateUser(ctx context.Context, user *models.User) (*models.User, error)
 }
 
 type MongoUserStore struct {
@@ -26,6 +28,30 @@ func NewMongoUserStore(c *mongo.Client) *MongoUserStore {
 		collection: c.Database(helpers.DB_NAME).Collection(USER_COLLECTION),
 	}
 
+}
+
+func (s *MongoUserStore) CreateUser(ctx context.Context, user *models.User) (*models.User, error) {
+	res, err := s.collection.InsertOne(ctx, user)
+	if err != nil {
+		return nil, err
+	}
+	user.ID = res.InsertedID.(primitive.ObjectID)
+	return user, nil
+}
+
+func (s *MongoUserStore) GetUsers(ctx context.Context) ([]*models.User, error) {
+	var users []*models.User
+
+	cursor, err := s.collection.Find(ctx, bson.M{})
+	if err != nil {
+		return nil, err
+	}
+
+	if err = cursor.Decode(&users); err != nil {
+		return []*models.User{}, nil
+	}
+
+	return users, nil
 }
 
 func (s *MongoUserStore) GetUserByID(ctx context.Context, id string) (*models.User, error) {
