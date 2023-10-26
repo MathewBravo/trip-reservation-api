@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"github.com/gofiber/fiber/v2"
 	"trip-reservation/db"
 	"trip-reservation/models"
@@ -21,6 +22,10 @@ func (uh *UserHandler) CreateUserHandler(c *fiber.Ctx) error {
 	var params models.CreateUserParams
 	if err := c.BodyParser(&params); err != nil {
 		return err
+	}
+	fmt.Println(params)
+	if errs := params.Validate(); errs != nil {
+		return c.JSON(errs)
 	}
 	user, err := models.CreateUserFromParams(params)
 	if err != nil {
